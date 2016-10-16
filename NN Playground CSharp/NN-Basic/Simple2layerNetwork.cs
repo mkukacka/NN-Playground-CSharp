@@ -3,10 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using NN_Common.Interfaces;
 
 namespace NN_Basic
 {
-    public class Simple2layerNetwork
+    public class Simple2layerNetwork : IFeedForwardNeuralNetwork, ITrainableNetwork
     {
 
         private int inputSize;
@@ -16,11 +17,19 @@ namespace NN_Basic
         private double activationParameter;
 
         private Random random;
-        private double [][][] w;            // weights, indexes: layer, neuron, neuron in lower layer/input
-        private double [][] biases;         // biases of neurons, indexes: layer, neuron
-        private double [][] activations;    // activation values of neuron, indexes: layer, neuron. Layer 0 is input, 1 is hidden layer, 2 is output layer.
-        
-        private double [][] errors;         // error coefficients of neurons, indexes: layer, neuron. Layer 0 are errors of hidden layer, layer 1 are errors of output layer.
+        protected double [][][] w;            // weights, indexes: layer, neuron, neuron in lower layer/input
+        protected double [][] biases;         // biases of neurons, indexes: layer, neuron
+        protected double [][] activations;    // activation values of neuron, indexes: layer, neuron. Layer 0 is input, 1 is hidden layer, 2 is output layer.
+
+        protected double [][] errors;         // error coefficients of neurons, indexes: layer, neuron. Layer 0 are errors of hidden layer, layer 1 are errors of output layer.
+
+        #region Properties
+        public int InputSize { get { return this.inputSize; } }
+        public int HiddenLayerSize { get { return this.hiddenLayerSize; } }
+        public int OutputSize { get { return this.outputSize; } }
+
+        public double ActivationParameter { get { return this.activationParameter; } }
+        #endregion
 
         public Simple2layerNetwork(int inputSize, int hiddenLayerSize, int outputSize,
             double activationParameter, int? randomizerSeed = null)
@@ -86,6 +95,8 @@ namespace NN_Basic
 
         }
 
+        #region Public methods
+
         public double[] GetNetworkOutput(double [] input)
         {
             VerifyInput(input);
@@ -99,9 +110,37 @@ namespace NN_Basic
             return res;
         }
 
-        
+        public double GetNetworkTotalError(double[] input, double[] targetOutput)
+        {
+            VerifyInput(input);
+            VerifyTargetOutput(targetOutput);
 
-        private void ComputeNetworkActivations(double [] input)
+            // compute network activations
+            ComputeNetworkActivations(input);
+
+            // measure the error between output and target output
+            return GetCurrentNetworkError(targetOutput);
+        }
+
+        public void Train(double[] input, double[] targetOutput, double learningParam)
+        {
+            VerifyInput(input);
+            VerifyTargetOutput(targetOutput);
+
+            // compute activations
+            ComputeNetworkActivations(input);
+
+            // measure error on output layer - per neuron - and assign it to the neuron's error coef
+            SetNeuronErrorCoefs(targetOutput);
+
+            // adapt weights
+            AdaptWeightsBasedOnErrors(learningParam);
+        }
+
+        #endregion
+
+
+        protected virtual void ComputeNetworkActivations(double [] input)
         {
             SetInputValues(input);
 
@@ -132,17 +171,7 @@ namespace NN_Basic
             }
         }
 
-        public double GetNetworkTotalError(double [] input, double [] targetOutput)
-        {
-            VerifyInput(input);
-            VerifyTargetOutput(targetOutput);
-
-            // compute network activations
-            ComputeNetworkActivations(input);
-
-            // measure the error between output and target output
-            return GetCurrentNetworkError(targetOutput);
-        }
+        
 
         private double GetCurrentNetworkError(double[] targetOutput)
         {
@@ -160,14 +189,8 @@ namespace NN_Basic
             return err;
         }
 
-        public void Learn(double [] input, double [] targetOutput, double learningParam)
+        protected virtual void SetNeuronErrorCoefs(double[] targetOutput)
         {
-            VerifyInput(input);
-            VerifyTargetOutput(targetOutput);
-
-            // compute activations
-            ComputeNetworkActivations(input);
-
             // measure error on output layer - per neuron - and assign it to the neuron's error coef
             for (int i = 0; i < outputSize; i++)
             {
@@ -186,7 +209,10 @@ namespace NN_Basic
                 }
                 errors[0][i] *= activationParameter * activations[1][i] * (1.0 - activations[1][i]);    // derivation of the activation function
             }
+        }
 
+        protected virtual void AdaptWeightsBasedOnErrors(double learningParam)
+        {
             // adapt weights
             for (int i = 0; i < 2; i++)
             {
@@ -202,11 +228,10 @@ namespace NN_Basic
                     biases[i][j] += -1.0 * learningParam * errors[i][j];    // bias works as a weight to a neuron with output of constant 1.0
                 }
             }
-
-
         }
 
-        #region Verification methods
+        
+        #region Parameter verification methods
         private void VerifyInput(double[] input)
         {
             if (input.Length != this.inputSize)
@@ -224,7 +249,7 @@ namespace NN_Basic
         }
         #endregion
 
-        private double ActivationFunction(double potential)
+        protected virtual double ActivationFunction(double potential)
         {
             return 1.0 / (1.0 + Math.Exp(-1.0 * activationParameter * potential));
         }
@@ -233,7 +258,7 @@ namespace NN_Basic
         /// 
         /// </summary>
         /// <returns>Random value between -1.0 and 1.0</returns>
-        private double GetRandomWeight()
+        protected virtual double GetRandomWeight()
         {
             return random.NextDouble() * 2.0 - 1.0;
         }

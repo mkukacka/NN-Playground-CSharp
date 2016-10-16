@@ -46,6 +46,7 @@
   <ItemGroup>
     <Compile Include="Simple2layerNetworkTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="TestConfiguration.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
@@ -54,6 +55,10 @@
     <ProjectReference Include="..\NN-Basic\NN-Basic.csproj">
       <Project>{AB2D9A80-90B4-4C88-97F9-0D6D1BAFB91A}</Project>
       <Name>NN-Basic</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\NN-Common\NN-Common.csproj">
+      <Project>{a9c5e941-da89-49db-a9fc-92874ae90c0d}</Project>
+      <Name>NN-Common</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
